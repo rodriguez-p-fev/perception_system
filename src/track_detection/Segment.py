@@ -1,0 +1,310 @@
+import os
+import numpy as np
+from track_detection import utils
+from track_detection.Polygon import Polygon
+from PIL import Image, ImageDraw, ImageFont
+
+directory = os.path.dirname(os.path.abspath(__file__))
+font_path = os.path.join(directory, 'resources/swansea-font/Swansea-q3pd.ttf')
+font = ImageFont.truetype(font_path, 80)
+
+segment_classes = {
+    0:"track",
+    1:"fp_turnout",
+    2:"tp_turnout",
+    3:"common",
+    4:'common-left',
+    5:'common-right',
+}
+segment_states = {
+    0:'unactive',
+    1:'active',
+    2:'unknown',
+}
+direction_dict = {
+    -1:"left",
+    0:"straight",
+    1:"right",
+    2:"unknown",
+}
+class Segment:
+    def __init__(self, polygon: Polygon) -> object:
+        self.segment_class = (polygon.get_class()+3)%5
+        self.polygons = [polygon]
+        self.direction = 2
+        self.state = 0
+        self.active_polygons_list = []
+        return None
+    def add_polygon(self, new_polygon: Polygon) -> None:
+        self.polygons.append(new_polygon)
+        return None
+    def update_bbox(self) -> None:
+        if(len(self.polygons) == 1):
+            self.bbox = self.polygons[0].get_bbox()
+        else:
+            x0, y0, x1, y1 = [], [], [], []
+            for p in self.polygons:
+                x0.append(p.get_bbox()[0])
+                y0.append(p.get_bbox()[1])
+                x1.append(p.get_bbox()[2])
+                y1.append(p.get_bbox()[3])
+            self.bbox = [np.array(x0).min(),np.array(y0).min(),np.array(x1).max(),np.array(y1).max()]
+        self.cx = (self.bbox[0]+self.bbox[2])/2
+        self.cy = (self.bbox[1]+self.bbox[3])/2
+        self.top_center_point  = [self.cx, self.bbox[1]]
+        self.base_center_point = [self.cx, self.bbox[3]]
+        self.search_distance = 10.1*(self.bbox[2] - self.bbox[0])*(self.bbox[3] - self.bbox[1])
+        self.sort_polygons()
+        return None
+    def sort_polygons(self):
+        common_idx = 0
+        legs_idxs = []
+        if(len(self.polygons) == 3):
+            for enum, p in enumerate(self.polygons):
+                if(p.get_class() == 0):
+                    common_idx = enum
+                else:
+                    legs_idxs.append(enum)
+            if(self.polygons[legs_idxs[0]].get_center_point()[0] < self.polygons[legs_idxs[1]].get_center_point()[0]):
+                left_leg_idx = legs_idxs[0]
+                right_leg_idx = legs_idxs[1]
+            else:
+                left_leg_idx = legs_idxs[1]
+                right_leg_idx = legs_idxs[0]
+            self.polygons = [self.polygons[common_idx],self.polygons[left_leg_idx],self.polygons[right_leg_idx]]
+        elif(len(self.polygons) == 2):
+            for enum, p in enumerate(self.polygons):
+                if(p.get_class() == 0):
+                    common_idx = enum
+                else:
+                    legs_idxs.append(enum)
+            if(self.polygons[legs_idxs[0]].get_center_point()[0] < self.polygons[common_idx].get_center_point()[0]):
+                left_leg_idx = legs_idxs[0]
+                right_leg_idx = common_idx
+            else:
+                left_leg_idx = common_idx
+                right_leg_idx = legs_idxs[0]
+            self.polygons = [self.polygons[common_idx],self.polygons[left_leg_idx],self.polygons[right_leg_idx]]
+        return None
+    def set_activation(self, state):
+        if(state == 1):
+            self.activate()
+        else:
+            self.set_polygons_state(state)
+        return None
+    def set_direction(self, direction: int):
+        self.direction = direction
+        return None
+    def set_class(self, segment_class: int):
+        self.segment_class = segment_class
+        return None
+    def set_state(self, new_state: int) -> None:
+        self.state = new_state
+        for p in self.polygons:
+            p.set_state(self.state)
+        return None
+    def get_state(self) -> int:
+        return self.state
+    def activate(self):
+        if(segment_classes[self.segment_class] in ['track','turnout']):
+            self.polygons[0].set_state(1)
+            self.active_polygons_list.append(self.polygons[0])
+        elif(self.segment_class in [1,2]):
+            if(self.direction == -1):
+                if(len(self.polygons) == 3):
+                    self.polygons[0].set_state(1)
+                    self.polygons[1].set_state(1)
+                    self.polygons[2].set_state(0)
+                    self.active_polygons_list.extend([self.polygons[0],self.polygons[1]])
+                else:
+                    self.polygons[0].set_state(1)
+            elif(self.direction == 1):
+                if(len(self.polygons) == 3):
+                    self.polygons[0].set_state(1)
+                    self.polygons[2].set_state(1)
+                    self.polygons[1].set_state(0)
+                    self.active_polygons_list.extend([self.polygons[0],self.polygons[2]])
+                else:
+                    self.polygons[0].set_state(1)
+                    self.active_polygons_list.append(self.polygons[0])
+        return None
+    def set_polygons_state(self, state):
+        for p in self.polygons:
+            p.set_state(state)
+        return None
+    def update_keypoints(self, objects):
+        intersections = []
+        idxs = []
+        for enum, obj in enumerate(objects):
+            if(self.segment_class == obj.get_class() or (self.segment_class > 0 and obj.get_class() > 0)):
+                intersections.append(utils.bboxes_IoU(self.get_bbox(),obj.get_bbox()))
+                idxs.append(enum)
+        intersections = np.array(intersections)
+        if(len(intersections) > 0 and intersections.max() > 30):
+            obj_idx = idxs[np.where(intersections == intersections.max())[0][0]]
+            self.segment = objects[obj_idx]
+            self.segment_class = objects[obj_idx].get_class()
+            self.pose = objects[obj_idx].get_pose()
+            self.object_bbox = objects[obj_idx].get_bbox()
+            self.direction = objects[obj_idx].get_direction()
+        else:
+            self.object_bbox = []
+            self.pose = []
+        return None
+    def get_class(self):
+        return self.segment_class
+    def get_bbox(self):
+        return self.bbox
+    def get_polygons(self):
+        return self.polygons
+    def get_direction(self):
+        return self.direction
+    def get_center_point(self):
+        return [self.cx,self.cy]
+    def get_conection_points(self):
+        if(segment_classes[self.segment_class] in ['track','turnout']):
+            return [
+                self.polygons[0].get_weighted_bottom_center_point(),
+                self.polygons[0].get_weighted_top_center_point()
+            ]
+        elif(segment_classes[self.segment_class] == 'fp_turnout'):
+            if(len(self.polygons) == 3):
+                return [
+                    self.polygons[0].get_weighted_bottom_center_point(),
+                    self.polygons[1].get_weighted_top_center_point(),
+                    self.polygons[2].get_weighted_top_center_point()
+                ]
+            elif(len(self.polygons) == 2):
+                return [
+                    self.polygons[0].get_weighted_bottom_center_point(),
+                    self.polygons[1].get_weighted_top_center_point(),
+                    self.polygons[0].get_weighted_top_center_point()
+                ]
+            else:
+                return [
+                    self.polygons[0].get_weighted_bottom_center_point(),
+                    self.polygons[0].get_weighted_top_center_point(),
+                    self.polygons[0].get_weighted_top_center_point()
+                ]
+        elif(segment_classes[self.segment_class] == 'tp_turnout'):
+            if(len(self.polygons) == 3):
+                return [
+                    self.polygons[1].get_weighted_bottom_center_point(),
+                    self.polygons[2].get_weighted_bottom_center_point(),
+                    self.polygons[0].get_weighted_top_center_point()
+                ]
+            elif(len(self.polygons) == 2):
+                return [
+                    self.polygons[1].get_weighted_bottom_center_point(),
+                    self.polygons[0].get_weighted_bottom_center_point(),
+                    self.polygons[0].get_weighted_top_center_point()
+                ]
+            else:
+                return [
+                    self.polygons[0].get_weighted_bottom_center_point(),
+                    self.polygons[0].get_weighted_bottom_center_point(),
+                    self.polygons[0].get_weighted_top_center_point()
+                ]
+    def get_bottom_search_distance(self):
+        return max(450,1.25*self.polygons[0].get_bottom_width())
+    def draw_polygons(self, img, color_rgb=[0,255,0]):
+        for p in self.get_polygons():
+            img = p.draw_polygon(img, color_rgb)
+        return img
+    def draw_bbox(self, img, color_rgb=[0,255,0]):
+        class_name = segment_classes[self.get_class()]
+        drw = ImageDraw.Draw(img, 'RGB')         
+        shape = [(self.bbox[0],self.bbox[1]),(self.bbox[2],self.bbox[3])]
+        text_bbox = drw.textbbox((self.bbox[0],self.bbox[1]-80), class_name, font=font)
+        drw.rectangle(text_bbox, fill=(color_rgb[0],color_rgb[1],color_rgb[2]))
+        drw.text((self.bbox[0],self.bbox[1]-80), class_name, fill=(0,0,0), font=font)
+        drw.rectangle(shape, outline=(color_rgb[0],color_rgb[1],color_rgb[2]), width=15)
+        return img
+    def draw_activations(self, img: Image) -> Image:
+        connection_points = self.get_conection_points()
+        width = 15
+        color_rgb = [255,0,0]
+        for p in self.get_polygons():
+            img = p.draw_state_polygon(img)
+        return img
+    '''
+    def get_top_center_point(self):
+        return self.top_center_point
+    def get_base_center_point(self):
+        return self.base_center_point
+    def get_pose(self):
+        return self.pose
+    def get_search_distance(self):
+        return self.search_distance
+    def set_active_polygons(self):
+        self.active_polygons_list = []
+        for p in self.polygons:
+            if(p.get_state() == 1):
+                self.active_polygons_list.extend(p.get_polygon())
+        return None
+    def get_active_polygons(self):
+        return self.active_polygons_list
+    def draw_object_bbox(self, img, color_rgb=[0,255,0]):
+        if(len(self.object_bbox)>0):
+            class_name = segment_classes[self.get_class()]
+            drw = ImageDraw.Draw(img, 'RGB')         
+            shape = [(self.object_bbox[0],self.object_bbox[1]),(self.object_bbox[2],self.object_bbox[3])]
+            text_bbox = drw.textbbox((self.object_bbox[0],self.object_bbox[1]-80), class_name, font=font)
+            drw.rectangle(text_bbox, fill=(color_rgb[0],color_rgb[1],color_rgb[2]))
+            drw.text((self.object_bbox[0],self.object_bbox[1]-80), class_name, fill=(0,0,0), font=font)
+            drw.rectangle(shape, outline=(color_rgb[0],color_rgb[1],color_rgb[2]), width=15)
+        return img
+    #def draw_pointset(self, img, pointset, color_rgb=[0,255,0], width = 15):
+    #    drw = ImageDraw.Draw(img, 'RGB') 
+    #    for p in pointset:
+    #        drw.ellipse((p[0]-width,p[1]-width, p[0]+width, p[1]+width), fill=(color_rgb[0],color_rgb[1],color_rgb[2]), outline =(color_rgb[0],color_rgb[1],color_rgb[2]))
+    #    return img
+    def draw_activations(self, img):
+        connection_points = self.get_conection_points()
+        width = 15
+        color_rgb = [255,0,0]
+        for p in self.get_polygons():
+            img = p.draw_state_polygon(img)
+        #drw = ImageDraw.Draw(img, 'RGB')
+        #for p in connection_points:
+        #    drw.ellipse((p[0]-width,p[1]-width, p[0]+width, p[1]+width), fill=(color_rgb[0],color_rgb[1],color_rgb[2]), outline =(color_rgb[0],color_rgb[1],color_rgb[2]))
+        return img
+    def draw_text_bbox(self, img, text, color_rgb=[255,200,100] ):
+        if(len(self.object_bbox)>0):
+            class_name = text
+            drw = ImageDraw.Draw(img, 'RGB')         
+            shape = [(self.object_bbox[0],self.object_bbox[1]),(self.object_bbox[2],self.object_bbox[3])]
+            text_bbox = drw.textbbox((self.object_bbox[0],self.object_bbox[1]-80), class_name, font=font)
+            drw.rectangle(text_bbox, fill=(color_rgb[0],color_rgb[1],color_rgb[2]))
+            drw.text((self.object_bbox[0],self.object_bbox[1]-80), class_name, fill=(0,0,0), font=font)
+            drw.rectangle(shape, outline=(color_rgb[0],color_rgb[1],color_rgb[2]), width=15)
+        return img
+    def set_contour(self, step = 5):
+        if(self.segment_class in [0,3]):
+            edges_img = side_lines.get_polygon_edges(self.img_shape, [self.polygons[0].get_polygon()])
+            self.left, self.right = side_lines.get_contour(edges_img, step)
+        elif(self.segment_class in [1,2]):
+            if(self.direction == -1):
+                edges_img = side_lines.get_polygon_edges(self.img_shape, [self.polygons[0].get_polygon()])
+                _, self.right = side_lines.get_contour(edges_img, step)
+                edges_img = side_lines.get_polygon_edges(self.img_shape, [self.polygons[1].get_polygon()])
+                self.left, _ = side_lines.get_contour(edges_img, step)
+            elif(self.direction == 1):
+                edges_img = side_lines.get_polygon_edges(self.img_shape, [self.polygons[0].get_polygon()])
+                self.left, _ = side_lines.get_contour(edges_img, step)
+                if(len(self.polygons) == 2):
+                    edges_img = side_lines.get_polygon_edges(self.img_shape, [self.polygons[2].get_polygon()])
+                    _, self.right = side_lines.get_contour(edges_img, step)
+                else:
+                    self.right = []
+        return None
+    def get_contour(self):
+        #print(f'len left: {len(self.left)}, len right: {len(self.right)}')
+        self.left = np.array(self.left)
+        self.right = np.array(self.right)
+        #if(len(self.left)>0):
+        #    self.left = side_lines.curve_fitting(self.left)
+        #if(len(self.right)>0):
+        #    self.right = side_lines.curve_fitting(self.right)
+        return self.left, self.right
+    '''
