@@ -3,7 +3,7 @@ import random
 from track_detection import Segment
 from track_detection import utils
 from track_detection.Polygon import Polygon
-from track_detection import PerspectiveTransformer
+from calibration import PerspectiveTransformer
 from PIL import Image
 
 class SegmentsSet:
@@ -23,7 +23,7 @@ class SegmentsSet:
         self.polygons = []
         for enum, c in enumerate(self.segmentation_dict['classes']):
             self.polygons_classes.append(c)
-            self.polygons.append(Polygon(c, self.segmentation_dict['polygons'][enum], self.perspective_transformer))
+            self.polygons.append(Polygon(c, self.segmentation_dict['polygons'][enum]))
         self.polygons_classes = np.array(self.polygons_classes)
         self.polygons = np.array(self.polygons,dtype='object')
         self.common_idxs = np.where(self.polygons_classes == 0)[0]

@@ -3,9 +3,6 @@ import os
 from track_detection import utils
 from PIL import Image, ImageDraw, ImageFont
 
-directory = os.path.dirname(os.path.abspath(__file__))
-font_path = os.path.join(directory, 'resources/swansea-font/Swansea-q3pd.ttf')
-font = ImageFont.truetype(font_path, 80)
 
 object_classes = {
     0:"track",
@@ -75,13 +72,3 @@ class KeypointsBbox:
         return self.direction
     def get_pose(self):
         return self.pose
-    def draw_bbox(self, img, color_rgb=[0,255,0]):
-        class_name = object_classes[self.get_class()]
-        direction_name = direction_dict[self.direction]
-        drw = ImageDraw.Draw(img, 'RGB')         
-        shape = [(self.bbox[0],self.bbox[1]),(self.bbox[2],self.bbox[3])]
-        text_class = drw.textbbox((self.bbox[0],self.bbox[1]-80), f'{class_name}    {direction_name}' , font=font)
-        drw.rectangle(text_class, fill=(color_rgb[0],color_rgb[1],color_rgb[2]))
-        drw.text((self.bbox[0],self.bbox[1]-80), f'{class_name}    {direction_name}', fill=(0,0,0), font=font)
-        drw.rectangle(shape, outline=(color_rgb[0],color_rgb[1],color_rgb[2]), width=15)
-        return img
