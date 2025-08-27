@@ -31,7 +31,7 @@ def draw_foul_volume_lines(img: Image, lines, line_color, fig='lines'):
     return img
 def draw_bbox(img_array:np.ndarray, bbox, color, text_bbox=''):
     img = Image.fromarray(img_array)
-    class_name = 'aux'
+    class_name = text_bbox
     shape = [(bbox[0],bbox[1]),(bbox[2],bbox[3])]
     draw = ImageDraw.Draw(img, 'RGB') 
     text_bbox = draw.textbbox((bbox[0],bbox[1]-80), class_name, font=font)

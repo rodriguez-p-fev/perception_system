@@ -32,6 +32,9 @@ for img_idx in range(len(load_files.imgs_files)):
         img_array, segmentation_dict = load_files.get_image_and_segmentation_dictionary(img_idx, segmentation_inferences)
     output_file = os.path.join(config.output_path, load_files.imgs_files[img_idx])
 
+
+    # ******** TRACK DETECTION NODE ***********************************************************************************************
+    #CREATE OBJECTS FROM INFERENCES
     if(segmentation_dict is not None):
         segments_set = SegmentsSet.SegmentsSet(segmentation_dict, perspective_transformer)
         selected_node = segments_set.get_closer_node(calibration.wayside["SOURCE"][0])
@@ -43,9 +46,11 @@ for img_idx in range(len(load_files.imgs_files)):
     else:
         left_fvl, right_fvl, left_rfw, right_rfw = [],[],[],[]
 
+    # ******** LOCAL CODE DRAW AND SAVE IMAGE *************************************************************************************************************
     seg_img = img_array
     seg_img = draw.draw_polygon(seg_img, selected_track, [0,255,0])
     seg_img = Image.fromarray(seg_img)
     seg_img = draw.draw_foul_volume_lines(seg_img, [left_fvl,right_fvl], line_color="red")
     seg_img = draw.draw_foul_volume_lines(seg_img, [left_rfw,right_rfw], line_color="yellow")
     seg_img.save(output_file)
+

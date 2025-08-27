@@ -10,9 +10,9 @@ polygon_classes = {
     0:'common'
 }
 polygon_states = {
-    'unactive': 0,
-    'active': 1,
-    'unknown':2
+    0:'unactive',
+    1:'active',
+    2:'unknown'
 }
 
 class Polygon:
@@ -32,6 +32,8 @@ class Polygon:
         self.bottom = self.ys.max()
         self.cx = (self.left+self.right)/2
         self.cy = (self.top+self.bottom)/2
+        self.wx = self.polygon[:,0].mean()
+        self.wx = self.polygon[:,0].mean()
         self.width = self.right - self.left
         self.height = self.bottom - self.top
         cut_y_top = self.top+self.height*cut_percentage
@@ -48,10 +50,6 @@ class Polygon:
         return self.polygon_class
     def get_polygon(self) -> np.ndarray:
         return self.polygon
-    def get_perspective_polygon(self):
-        point_set =  np.array(self.polygon, dtype=np.int32)
-        point_set =  self.perspective_transformer.transform(point_set, )
-        return point_set
     def get_state(self) -> int:
         return self.state
     def get_bbox(self) -> list:
@@ -66,27 +64,3 @@ class Polygon:
         return self.xdiff_bottom
     def get_width(self):
         return self.width
-    def draw_polygon(self, img: Image, color_rgb=[0,255,0]):
-        img_array = np.array(img)
-        output = np.copy(img_array)
-        alpha = 0.4
-        point_set =  np.array(self.polygon, dtype=np.int32)
-        cv2.fillPoly(output, pts=[point_set], color=color_rgb)
-        image_new = cv2.addWeighted(output, alpha, img_array, 1 - alpha, 0)
-        image_new = Image.fromarray(image_new)
-        return image_new
-    def draw_state_polygon(self, img: Image):
-        if(self.state == 0):
-            color_rgb=[0,0,255]
-        elif(self.state == 1):
-            color_rgb=[0,255,0]
-        else:
-            color_rgb=[255,255,0]
-        img_array = np.array(img)
-        output = np.copy(img_array)
-        alpha = 0.4
-        point_set =  np.array(self.polygon, dtype=np.int32)
-        cv2.fillPoly(output, pts=[point_set], color=color_rgb)
-        image_new = cv2.addWeighted(output, alpha, img_array, 1 - alpha, 0)
-        image_new = Image.fromarray(image_new)
-        return image_new

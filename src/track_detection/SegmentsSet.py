@@ -14,7 +14,6 @@ class SegmentsSet:
         self.nodes_graph = []
         self.active = []
         self.initialize_polygon_list()
-        self.initialize_segments()
         return None
     
     #Initialize polygons
@@ -32,19 +31,27 @@ class SegmentsSet:
         return None
     
     #Initialize segments
-    def initialize_segments(self) -> None:
+    def initialize_segments(self, keypointsbboxes_list) -> None:
+        segments_base_center_points = []
         self.unknown_nodes = []
         tracks = self.polygons[self.track_idxs]
         commons = self.polygons[self.common_idxs]
         legs = self.polygons[self.leg_idxs]
         for common in commons:
-            self.select_legs(common, legs)
-        for track in tracks:
-            new_segment = Segment.Segment(track)
-            new_segment.set_state(0)
+            new_segment = self.select_legs(common, legs)
+            #new_segment = Segment.Segment(common)
+            new_segment.update_bbox()
+            segments_base_center_points.append(new_segment .get_center_point())
+            new_segment.update_keypoints(keypointsbboxes_list)
             self.segments.append(new_segment)
             self.nodes_graph.append([])
-        self.update_bboxes()
+        for track in tracks:
+            new_segment = Segment.Segment(track)
+            segments_base_center_points.append(new_segment .get_center_point())
+            self.segments.append(new_segment)
+            self.nodes_graph.append([])
+        segments_base_center_points = np.array(segments_base_center_points)
+        self.sorted_segments_idxs = np.flip(np.argsort(segments_base_center_points[:,1]))
         return None
     def select_legs(self, common:Polygon, legs:list):
         new_segment = Segment.Segment(common)
@@ -53,16 +60,21 @@ class SegmentsSet:
         for leg in legs:
             intersections.append(utils.bboxes_IoU(common.get_bbox(),leg.get_bbox()))
             distances.append(utils.distance(common.get_center_point(),leg.get_center_point()))
-        intersections = np.array(intersections)
-        intersections = intersections[np.where(intersections>0)]
-        distances = np.array(distances)
-        distances = distances[np.where(distances<1.25*common.get_width())]
+        
+        intersections = np.array(intersections,dtype=np.float16)
+        intersections_idx = np.where(intersections>0)[0]
+        intersections = intersections[intersections_idx]
 
-        if(len(intersections) > 0):
+        distances = np.array(distances)
+        distances_idx = np.where(distances<1.25*common.get_width())[0]
+        distances = distances[distances_idx]
+        
+        if(len(intersections_idx) > 0):
             sorted_idxs = np.flip(np.argsort(intersections))
-            if(len(intersections) >= 2):
-                new_segment.add_polygon(legs[sorted_idxs[0]])
-                new_segment.add_polygon(legs[sorted_idxs[1]])
+            print(intersections[sorted_idxs])
+            if(len(intersections_idx) >= 2):
+                new_segment.add_polygon(legs[intersections_idx[sorted_idxs[0]]])
+                new_segment.add_polygon(legs[intersections_idx[sorted_idxs[1]]])
                 if(common.get_center_point()[1] >= (legs[sorted_idxs[0]].get_center_point()[1]+legs[sorted_idxs[1]].get_center_point()[1])/2):
                     new_segment.set_class(1)
                 elif(common.get_center_point()[1] < (legs[sorted_idxs[0]].get_center_point()[1]+legs[sorted_idxs[1]].get_center_point()[1])/2): 
@@ -74,28 +86,13 @@ class SegmentsSet:
                 elif(common.get_center_point()[0] < legs[sorted_idxs[0]].get_center_point()[0]):
                     new_segment.set_class(5)
 
-        if(len(distances) > 0):
-            sorted_idxs = np.argsort(distances)
-            if(len(new_segment.get_polygons()) == 1):
-                print("hello")
-            elif(len(new_segment.get_polygons()) == 2):
-                print("hello")
-        
-
-        #else:
-        #    new_segment.set_state(2)
-        #    self.unknown_nodes.append(len(self.segments))
-        self.segments.append(new_segment)
-        self.nodes_graph.append([])
-        return None
-    def update_bboxes(self):
-        segments_base_center_points = []
-        for segment in self.segments:
-            segment.update_bbox()
-            segments_base_center_points.append(segment.get_center_point())
-        segments_base_center_points = np.array(segments_base_center_points)
-        self.sorted_segments_idxs = np.flip(np.argsort(segments_base_center_points[:,1]))
-        return None
+        #if(len(new_segment.get_polygons()) < 3 and len(distances_idx) > 0):
+        #    sorted_idxs = np.argsort(distances)
+        #    if(len(new_segment.get_polygons()) == 1):
+        #        print("hello")
+        #    elif(len(new_segment.get_polygons()) == 2):
+        #        print("hello")
+        return new_segment
     
     #Join keypoints model output
     def update_segments_keypoints(self, keypointsbboxes_list:list):

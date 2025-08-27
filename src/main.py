@@ -1,6 +1,7 @@
 import os
 import time
 import torch
+from PIL import Image
 
 import config
 from inference_files import load_files
@@ -9,8 +10,10 @@ from inference_files import BboxesInference
 from inference import inferences
 from calibration import PerspectiveTransformer
 from calibration import calibration
+from track_detection import Segment
 from track_detection import SegmentsSet
 from track_detection import KeypointsBboxesSet
+from draw import draw
 
 
 CUDA =  torch.cuda.is_available()
@@ -40,3 +43,17 @@ if(True):
     #CREATE OBJECTS FROM INFERENCES
     segments_set = SegmentsSet.SegmentsSet(segmentation_dict, perspective_transformer)
     keypointsbboxes_sets = KeypointsBboxesSet.KeypointsBboxesSet(keypointsbboxes_dict)
+    segments_set.initialize_segments(keypointsbboxes_sets.get_keypoints_bboxes())
+
+
+
+    # ******** LOCAL CODE DRAW AND SAVE IMAGE *************************************************************************************************************
+    seg_img = img_array
+    for enum, seg in enumerate(segments_set.get_segments()):
+        if(seg.get_class() != 0):
+            rnd_color = (255,0,0)
+            for p in seg.get_polygons():
+                seg_img = draw.draw_polygon(seg_img, p.get_polygon(),rnd_color)
+            seg_img = draw.draw_bbox(seg_img, seg.get_bbox(),rnd_color, text_bbox=Segment.segment_classes[seg.get_class()])
+    seg_img = Image.fromarray(seg_img)
+    seg_img.save(output_file)

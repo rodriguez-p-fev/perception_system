@@ -30,9 +30,18 @@ class Segment:
         self.direction = 2
         self.state = 0
         self.active_polygons_list = []
+        self.bbox = polygon.get_bbox()
+        self.update_base_points()
         return None
     def add_polygon(self, new_polygon: Polygon) -> None:
         self.polygons.append(new_polygon)
+        return None
+    def update_base_points(self):
+        self.cx = (self.bbox[0]+self.bbox[2])/2
+        self.cy = (self.bbox[1]+self.bbox[3])/2
+        self.top_center_point  = [self.cx, self.bbox[1]]
+        self.base_center_point = [self.cx, self.bbox[3]]
+        self.search_distance = 10.1*(self.bbox[2] - self.bbox[0])*(self.bbox[3] - self.bbox[1])
         return None
     def update_bbox(self) -> None:
         if(len(self.polygons) == 1):
@@ -45,11 +54,7 @@ class Segment:
                 x1.append(p.get_bbox()[2])
                 y1.append(p.get_bbox()[3])
             self.bbox = [np.array(x0).min(),np.array(y0).min(),np.array(x1).max(),np.array(y1).max()]
-        self.cx = (self.bbox[0]+self.bbox[2])/2
-        self.cy = (self.bbox[1]+self.bbox[3])/2
-        self.top_center_point  = [self.cx, self.bbox[1]]
-        self.base_center_point = [self.cx, self.bbox[3]]
-        self.search_distance = 10.1*(self.bbox[2] - self.bbox[0])*(self.bbox[3] - self.bbox[1])
+        self.update_base_points()
         self.sort_polygons()
         return None
     def sort_polygons(self):
