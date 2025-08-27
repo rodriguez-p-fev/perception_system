@@ -5,6 +5,7 @@ from PIL import Image
 import config
 from inference_files import load_files
 from inference_files import SegmentationInference
+from inference import inferences
 from calibration import PerspectiveTransformer
 from calibration import calibration
 from track_detection import SegmentsSet
@@ -24,10 +25,11 @@ for img_idx in range(len(load_files.imgs_files)):
     
     if(CUDA):
         # ******** ROS NODES ***********************************************************************************************
-        img_array, segmentation_dict = load_files.get_image_and_models_dictionaries_wayside(img_idx, segmentation_inferences)
+        img_array = load_files.get_image(img_idx)
+        segmentation_dict = inferences.segmentation_model.inference(img_array)
     else:
         # ******** LOCAL CODE ***********************************************************************************************
-        img_array, segmentation_dict = load_files.get_image_and_models_dictionaries_wayside(img_idx, segmentation_inferences)
+        img_array, segmentation_dict = load_files.get_image_and_segmentation_dictionary(img_idx, segmentation_inferences)
     output_file = os.path.join(config.output_path, load_files.imgs_files[img_idx])
 
     if(segmentation_dict is not None):

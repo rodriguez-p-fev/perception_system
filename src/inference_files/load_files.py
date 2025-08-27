@@ -9,6 +9,11 @@ segmentation_model_files = sorted(os.listdir(config.segmentation_model_path))
 keypoints_model_files    = sorted(os.listdir(config.keypoints_model_path))
 
 
+def get_image(img_idx:int, segmentation_inferences:object, bboxes_inferences:object):
+    img_file_path                = os.path.join(config.imgs_path, imgs_files[img_idx])
+    img = Image.open(img_file_path).convert("RGB")
+    img_array = np.array(img)
+    return img_array
 def get_image_and_models_dictionaries(img_idx:int, segmentation_inferences:object, bboxes_inferences:object):
     img_file_path                = os.path.join(config.imgs_path, imgs_files[img_idx])
     img = Image.open(img_file_path).convert("RGB")
@@ -18,7 +23,7 @@ def get_image_and_models_dictionaries(img_idx:int, segmentation_inferences:objec
     segmentation_dict = segmentation_inferences.get_inference(img_idx, img.size)
     keypointsbboxes_dict = bboxes_inferences.get_inference(img_idx, img.size)
     return img_array, segmentation_dict, keypointsbboxes_dict
-def get_image_and_models_dictionaries_wayside(img_idx:int, segmentation_inferences:object):
+def get_image_and_segmentation_dictionary(img_idx:int, segmentation_inferences:object):
     img_file_path                = os.path.join(config.imgs_path, imgs_files[img_idx])
     img = Image.open(img_file_path).convert("RGB")
     print_info(img_idx, img.size)

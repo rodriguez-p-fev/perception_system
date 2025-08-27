@@ -2,7 +2,6 @@ import numpy as np
 import random
 from PIL import Image, ImageDraw
 from track_detection.KeypointsBbox import KeypointsBbox
-from track_detection import draw
 
 class KeypointsBboxesSet:
     def __init__(self, keypoints_model_output: dict) -> object:
@@ -61,22 +60,5 @@ class KeypointsBboxesSet:
                     actual = next_nodes[1]
                     next_nodes = self.objects_graph[actual]
         return None
-    def draw_polygon(self, img_array: np.ndarray, idx: int, color_rgb=[0,255,0]) -> Image:
-        output_image = np.copy(img_array)
-        for enum, p in enumerate(self.keypoints_bboxes[idx].get_segment().get_polygons()):
-            output_image = draw.draw_polygon(output_image, p.get_polygon(), color_rgb)
-        return output_image
-    def draw_bbox(self, img, idx, color_rgb=(0,255,0)):
-        #output_image = np.copy(img_array)
-        drw = ImageDraw.Draw(img, 'RGB') 
-        shape = [(self.keypoints_bboxes[idx].get_bbox()[0],self.keypoints_bboxes[idx].get_bbox()[1]),(self.keypoints_bboxes[idx].get_bbox()[2],self.keypoints_bboxes[idx].get_bbox()[3])]
-        drw.rectangle(shape, outline = color_rgb)
-        return img
-    def draw_bboxes(self, img):
-        #image_new = Image.fromarray(img)
-        for enum, o in enumerate(self.keypoints_bboxes):
-            random_color = [random.randint(50,255),random.randint(50,255),random.randint(50,255)]
-            image_new = o.draw_bbox(img, random_color)
-        return image_new
 
 

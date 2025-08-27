@@ -9,3 +9,5 @@ keypts_model_path = os.path.join(directory, 'models/keypoint_model.pt')
 
 segmentation_model = SegmentationModel.SegmentationModel(seg_model_path)
 keypoints_model = KeypointsModel.KeypointsModel(keypts_model_path)
+
+
