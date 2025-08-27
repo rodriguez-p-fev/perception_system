@@ -41,15 +41,15 @@ class SegmentsSet:
             new_segment = self.select_legs(common, legs)
             #new_segment = Segment.Segment(common)
             new_segment.update_bbox()
-            segments_base_center_points.append(new_segment .get_center_point())
             new_segment.update_keypoints(keypointsbboxes_list)
             self.segments.append(new_segment)
             self.nodes_graph.append([])
+            segments_base_center_points.append(new_segment.get_center_point())
         for track in tracks:
             new_segment = Segment.Segment(track)
-            segments_base_center_points.append(new_segment .get_center_point())
             self.segments.append(new_segment)
             self.nodes_graph.append([])
+            segments_base_center_points.append(new_segment.get_center_point())
         segments_base_center_points = np.array(segments_base_center_points)
         self.sorted_segments_idxs = np.flip(np.argsort(segments_base_center_points[:,1]))
         return None
@@ -71,7 +71,6 @@ class SegmentsSet:
         
         if(len(intersections_idx) > 0):
             sorted_idxs = np.flip(np.argsort(intersections))
-            print(intersections[sorted_idxs])
             if(len(intersections_idx) >= 2):
                 new_segment.add_polygon(legs[intersections_idx[sorted_idxs[0]]])
                 new_segment.add_polygon(legs[intersections_idx[sorted_idxs[1]]])
@@ -85,22 +84,11 @@ class SegmentsSet:
                     new_segment.set_class(4)
                 elif(common.get_center_point()[0] < legs[sorted_idxs[0]].get_center_point()[0]):
                     new_segment.set_class(5)
-
-        #if(len(new_segment.get_polygons()) < 3 and len(distances_idx) > 0):
-        #    sorted_idxs = np.argsort(distances)
-        #    if(len(new_segment.get_polygons()) == 1):
-        #        print("hello")
-        #    elif(len(new_segment.get_polygons()) == 2):
-        #        print("hello")
         return new_segment
     
     #Join keypoints model output
-    def update_segments_keypoints(self, keypointsbboxes_list:list):
-        for segment in self.segments:
-            segment.update_keypoints(keypointsbboxes_list)
-        return None
     def set_nodes_graph(self, start_point: np.ndarray):
-        self.start_node = self.get_closer_node(start_point, weight=4)
+        self.start_node = self.get_closer_node(start_point, weight=2.6)
         for i in range(len(self.sorted_segments_idxs)-1):
             idx = self.sorted_segments_idxs[i]
             if(Segment.segment_classes[self.segments[idx].get_class()] in ['track', 'turnout']):
@@ -165,7 +153,7 @@ class SegmentsSet:
     def get_next_node(self, segment, start_idx):
         top_point = segment
         distances = []
-        for comp_idx in self.sorted_segments_idxs[start_idx:]:
+        for enum, comp_idx in enumerate(self.sorted_segments_idxs[start_idx:]):
             if(Segment.segment_classes[self.segments[comp_idx].get_class()] != 'tp_turnout'):
                 bottom_point = self.segments[comp_idx].get_conection_points()[0]
                 d = utils.vertical_weighted_distance(top_point, bottom_point)
@@ -186,9 +174,9 @@ class SegmentsSet:
                 return -1
         else:
             return -1
-    def get_closer_node(self, top_point, start_idx = 0, weight = 1.35):
+    def get_closer_node(self, top_point, start_idx = 0, weight = 1):
         distances = []
-        for comp_idx in self.sorted_segments_idxs[start_idx:]:
+        for enum, comp_idx in enumerate(self.sorted_segments_idxs[start_idx:]):
             if(Segment.segment_classes[self.segments[comp_idx].get_class()] != 'tp_turnout'):
                 bottom_point = self.segments[comp_idx].get_conection_points()[0]
                 d = utils.vertical_weighted_distance(top_point, bottom_point, weight)

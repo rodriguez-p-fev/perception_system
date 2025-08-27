@@ -43,14 +43,31 @@ if(True):
     #CREATE OBJECTS FROM INFERENCES
     segments_set = SegmentsSet.SegmentsSet(segmentation_dict, perspective_transformer)
     keypointsbboxes_sets = KeypointsBboxesSet.KeypointsBboxesSet(keypointsbboxes_dict)
+    
+    #COMBINE BOTH MODELS INFERENCES INTO ONE OBJECT
     segments_set.initialize_segments(keypointsbboxes_sets.get_keypoints_bboxes())
+
+    #SELECT START NODE
+    start_node = segments_set.get_closer_node(calibration.normal["SOURCE"][0])
+    print(f'start node: {start_node}')
+
+    #CREATE THE GRAPH OF NODES
+    segments_set.set_nodes_graph(calibration.wayside["SOURCE"][0])
+
+
+    #CREATE ACTIVE PATH, UNACTIVE PATH AND UNKNOWN SEGMENTS
+    #segments_set.set_active_path(start_node)
+
 
 
 
     # ******** LOCAL CODE DRAW AND SAVE IMAGE *************************************************************************************************************
     seg_img = img_array
-    for enum, seg in enumerate(segments_set.get_segments()):
-        if(seg.get_class() != 0):
+    indexs = [start_node,0,6,1,5]
+    for idx in indexs:
+        seg = segments_set.get_segments()[idx]
+        #if(seg.get_class() != 0):
+        if True:
             rnd_color = (255,0,0)
             for p in seg.get_polygons():
                 seg_img = draw.draw_polygon(seg_img, p.get_polygon(),rnd_color)
