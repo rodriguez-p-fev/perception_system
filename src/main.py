@@ -26,10 +26,7 @@ segmentation_inferences = SegmentationInference.SegmentationInference(config.seg
 bboxes_inferences = BboxesInference.BboxesInference(config.keypoints_model_path, load_files.keypoints_model_files)
 
 
-#for img_idx in range(len(load_files.imgs_files)):
-for img_idx in range(513,len(load_files.imgs_files)):
-#if(True):
-#    img_idx=513
+for img_idx in range(len(load_files.imgs_files)):
     if(CUDA):
         # ******** ROS NODES ***********************************************************************************************
         img_array = load_files.get_image(img_idx)
@@ -98,68 +95,11 @@ for img_idx in range(513,len(load_files.imgs_files)):
         left_fvl, right_fvl, left_rfw, right_rfw = [],[],[],[]
     # ******** LOCAL CODE DRAW AND SAVE IMAGE *************************************************************************************************************
     seg_img = img_array
-    indexs = active_nodes[:]
-    for idx in indexs:
-        seg = segments_set.get_segments()[idx]
-        rnd_color = (50,255,50)
-        if(seg.get_class() == 1):
-            if(seg.get_direction() == -1):
-                seg_img = draw.draw_polygon(seg_img, seg.get_polygons()[0].get_polygon(),rnd_color)
-                seg_img = draw.draw_polygon(seg_img, seg.get_polygons()[1].get_polygon(),rnd_color)
-            else:
-                seg_img = draw.draw_polygon(seg_img, seg.get_polygons()[0].get_polygon(),rnd_color)
-                seg_img = draw.draw_polygon(seg_img, seg.get_polygons()[2].get_polygon(),rnd_color)
-            #seg_img = draw.draw_bbox(seg_img, seg.get_bbox(),rnd_color, text_bbox=Segment.segment_classes[seg.get_class()])
-        else:
-            seg_img = draw.draw_polygon(seg_img, seg.get_polygons()[0].get_polygon(),rnd_color)
-    seg_img = Image.fromarray(seg_img)
-    #print(left_points_perspective)
-    #seg_img = draw.draw_pointset(seg_img, np.array(left_points))
-    #seg_img = draw.draw_pointset(seg_img, np.array(right_points))
-    #seg_img = draw.draw_foul_volume_lines(seg_img, [left_curve, right_curve], line_color="green")
-    #seg_img = draw.draw_foul_volume_lines(seg_img, [left_fvl, right_fvl], line_color="red")
-    #seg_img = draw.draw_foul_volume_lines(seg_img, [left_rfw, right_rfw], line_color="yellow")
-    #seg_img.save(output_file)
-    
-    seg_img = img_array
     #active_polygons =active_polygons[:6]
     for p in active_polygons:
+        rnd_color = (50,255,50)
         seg_img = draw.draw_polygon(seg_img, p, rnd_color)
     seg_img = Image.fromarray(seg_img)
     seg_img = draw.draw_foul_volume_lines(seg_img, [left_fvl, right_fvl], line_color="red")
     seg_img = draw.draw_foul_volume_lines(seg_img, [left_rfw, right_rfw], line_color="yellow")
     seg_img.save(output_file)
-"""
-    import matplotlib.pyplot as plt
-    points = np.array(calibration.normal["SOURCE"])
-    plt.scatter(active_polygons[:,0],active_polygons[:,1],s=2)
-    seg_img = Image.fromarray(img_array)
-    plt.imshow(seg_img)
-    plt.scatter(points[:,0],points[:,1],s=10)
-    #plt.xlim(-15*GAUGE, 20*GAUGE)
-    #plt.ylim(500000, -4000000)
-    plt.savefig("./plot_test")
-    plt.cla()
-    
-    plt.scatter(selected_track_perspective[:,0],selected_track_perspective[:,1],s=2)
-    plt.scatter(left_curve_perspective[:,0],left_curve_perspective[:,1],s=2)
-    plt.scatter(right_curve_perspective[:,0],right_curve_perspective[:,1],s=2)
-    #plt.xlim(-15*GAUGE, 20*GAUGE)
-    #plt.ylim(500000, -4000000)
-    plt.savefig("./per_test")
-    plt.cla()
-
-    plt.scatter(active_polygons[:,0],active_polygons[:,1],s=2)
-    seg_img = Image.fromarray(img_array)
-    plt.imshow(seg_img)
-    plt.scatter(left_curve[:,0],left_curve[:,1],s=3)
-    plt.scatter(right_curve[:,0],right_curve[:,1],s=3)
-
-    plt.scatter(left_fvl[:,0],left_fvl[:,1],s=3)
-    plt.scatter(right_fvl[:,0],right_fvl[:,1],s=3)
-    plt.scatter(left_fvl[:,0],left_fvl[:,1],s=3)
-    plt.scatter(left_rfw[:,0],left_rfw[:,1],s=3)
-    plt.scatter(right_rfw[:,0],right_rfw[:,1],s=3)
-    plt.savefig("./per_test_22")
-    plt.cla()
-"""
