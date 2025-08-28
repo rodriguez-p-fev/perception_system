@@ -26,8 +26,10 @@ segmentation_inferences = SegmentationInference.SegmentationInference(config.seg
 bboxes_inferences = BboxesInference.BboxesInference(config.keypoints_model_path, load_files.keypoints_model_files)
 
 
-for img_idx in range(len(load_files.imgs_files)):
-    
+#for img_idx in range(len(load_files.imgs_files)):
+for img_idx in range(513,len(load_files.imgs_files)):
+#if(True):
+#    img_idx=513
     if(CUDA):
         # ******** ROS NODES ***********************************************************************************************
         img_array = load_files.get_image(img_idx)
@@ -63,28 +65,37 @@ for img_idx in range(len(load_files.imgs_files)):
     else:
         active_polygons = []
     # OUTPUT
-    #       Active polygons: np.ndarray
-    
+    #       Active polygons: list of np.ndarray
     # ******** FOUL VOLUME AND RIGHT OF WAY LINES NODE ***********************************************************************************************
-    #selected_track_perspective = perspective_transformer.transform(active_polygons)
-    #selected_track_perspective = selected_track_perspective[np.where(selected_track_perspective[:,1] > 0)]
-    #selected_track_perspective = selected_track_perspective[np.where(selected_track_perspective[:,1] < 300000)]
-    #left_points_perspective, right_points_perspective = wayside_functions.filter_polygon_vertical(selected_track_perspective)
-    #left_curve_perspective = side_lines.curve_fitting(left_points_perspective, n_points=500, grad=4)
-    #right_curve_perspective = side_lines.curve_fitting(right_points_perspective, n_points=500, grad=4)
-   # 
-   # left_fvl_perspective, right_fvl_perspective, left_rfw_perspective, right_rfw_perspective = wayside_functions.get_fv_row_lines(left_curve_perspective, right_curve_perspective)
-   # left_points = perspective_transformer.inverse_transform(left_curve_perspective)
-   # right_points = perspective_transformer.inverse_transform(right_curve_perspective)#
+    
+    try:
+        active_polygons_points = []
+        for p in active_polygons:
+            active_polygons_points.extend(p)
+        ravel_arr = np.ravel(active_polygons_points)
+        active_points = np.reshape(np.ravel(ravel_arr),(int(len(ravel_arr)/2),2))
 
-    #left_curve = perspective_transformer.inverse_transform(left_curve_perspective)
-    #right_curve = perspective_transformer.inverse_transform(right_curve_perspective)
-    #left_fvl = perspective_transformer.inverse_transform(left_fvl_perspective)
-    #right_fvl = perspective_transformer.inverse_transform(right_fvl_perspective)
-    ##left_rfw = perspective_transformer.inverse_transform(left_rfw_perspective)
-    #right_rfw = perspective_transformer.inverse_transform(right_rfw_perspective)
-    #left_points = perspective_transformer.inverse_transform(left_points_perspective)
-    #right_points = perspective_transformer.inverse_transform(right_points_perspective)
+        selected_track_perspective = perspective_transformer.transform(active_points)
+        selected_track_perspective = selected_track_perspective[np.where(selected_track_perspective[:,1] > 0)]
+        selected_track_perspective = selected_track_perspective[np.where(selected_track_perspective[:,1] < 400000)]
+    
+        left_points_perspective, right_points_perspective = wayside_functions.filter_polygon_vertical(selected_track_perspective)
+        left_curve_perspective = side_lines.curve_fitting(left_points_perspective, n_points=500, grad=4)
+        right_curve_perspective = side_lines.curve_fitting(right_points_perspective, n_points=500, grad=4)
+    
+
+        left_fvl_perspective, right_fvl_perspective, left_rfw_perspective, right_rfw_perspective = wayside_functions.get_fv_row_lines(left_curve_perspective, right_curve_perspective)
+        #left_points = perspective_transformer.inverse_transform(left_curve_perspective)
+        #right_points = perspective_transformer.inverse_transform(right_curve_perspective)#
+
+        #left_curve = perspective_transformer.inverse_transform(left_curve_perspective)
+        #right_curve = perspective_transformer.inverse_transform(right_curve_perspective)
+        left_fvl = perspective_transformer.inverse_transform(left_fvl_perspective)
+        right_fvl = perspective_transformer.inverse_transform(right_fvl_perspective)
+        left_rfw = perspective_transformer.inverse_transform(left_rfw_perspective)
+        right_rfw = perspective_transformer.inverse_transform(right_rfw_perspective)
+    except:
+        left_fvl, right_fvl, left_rfw, right_rfw = [],[],[],[]
     # ******** LOCAL CODE DRAW AND SAVE IMAGE *************************************************************************************************************
     seg_img = img_array
     indexs = active_nodes[:]
@@ -111,9 +122,12 @@ for img_idx in range(len(load_files.imgs_files)):
     #seg_img.save(output_file)
     
     seg_img = img_array
+    #active_polygons =active_polygons[:6]
     for p in active_polygons:
         seg_img = draw.draw_polygon(seg_img, p, rnd_color)
     seg_img = Image.fromarray(seg_img)
+    seg_img = draw.draw_foul_volume_lines(seg_img, [left_fvl, right_fvl], line_color="red")
+    seg_img = draw.draw_foul_volume_lines(seg_img, [left_rfw, right_rfw], line_color="yellow")
     seg_img.save(output_file)
 """
     import matplotlib.pyplot as plt
