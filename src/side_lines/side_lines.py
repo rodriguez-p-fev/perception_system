@@ -1,14 +1,18 @@
 import numpy as np
 import cv2
 
-def get_polygon_edges(img_shape, shapes):
+def get_polygon_mask(polygons, img_shape):
     blank = np.zeros(shape=(img_shape[0],img_shape[1]),dtype=np.float32)
-    for shape in shapes:
+    for shape in polygons:
         points = np.array(shape,np.int32)
         cv2.fillPoly(blank,[points],255)
     blank = np.expand_dims(blank,axis=2)
     mask_array = np.array(blank)
     mask_array = np.uint8(mask_array)
+    mask_array = mask_array.reshape(mask_array.shape[0],mask_array.shape[1])
+    return mask_array
+def get_polygon_edges(polygons: np.ndarray, img_shape):
+    mask_array = get_polygon_mask(polygons, img_shape)
     edges = cv2.Canny(mask_array,100,200)
     y,x = np.where(edges!=0)
     output = np.array([x,y])
@@ -20,18 +24,20 @@ def get_contour(pointset, step):
     if(len(pointset) > 0):
         y_start = int(pointset[:,1].max())
         y_end = int(pointset[:,1].min())
+        #step = (y_start - y_end)/n_steps
         idxs = np.where(pointset[:,1] == y_start)
         left.append([pointset[idxs][:,0].min(),y_start])
         right.append([pointset[idxs][:,0].max(),y_start])
-        for i in range(y_start-5, y_end+5, -step):
+        for i in range(int(y_start-5), int(y_end+5), -int(step)):
             idxs = np.where(pointset[:,1] == i)
             filtered_pointset = pointset[idxs]
             if(len(filtered_pointset) > 0):
                 left.append([filtered_pointset[:,0].min(),i])
                 right.append([filtered_pointset[:,0].max(),i])
         idxs = np.where(pointset[:,1] == y_end)
-        left.append([filtered_pointset[:,0].min(),y_end])
-        right.append([filtered_pointset[:,0].max(),y_end])
+        if(len(filtered_pointset) > 0):
+            left.append([filtered_pointset[:,0].min(),y_end])
+            right.append([filtered_pointset[:,0].max(),y_end])
     return np.array(left), np.array(right)
 def get_contour_aux(pointset, step):
     left = []
@@ -117,3 +123,19 @@ def template_lines(pointset: np.ndarray):
     left_fvl = curve_fitting(np.array([left_side_1,left_side_2]), grad=1)
     right_fvl = curve_fitting(np.array([right_side_1,right_side_2]), grad=1)
     return left_fvl, center_line, right_fvl
+def get_fv_row_lines(left_curve, right_curve, GAUGE=1435):
+    sixfeet = 1828
+    twentyfeet = 6096
+    sixfeet_from_center = sixfeet - GAUGE/2
+    twentyfeet_from_center = twentyfeet - GAUGE/2
+    left_fvl = np.copy(left_curve)
+    right_fvl = np.copy(right_curve)
+    left_rfw = np.copy(left_curve)
+    right_rfw = np.copy(right_curve)
+    left_fvl[:,0] = left_fvl[:,0] - sixfeet_from_center
+    right_fvl[:,0] = right_fvl[:,0] + sixfeet_from_center
+    left_rfw[:,0] = left_fvl[:,0] - twentyfeet_from_center
+    right_rfw[:,0] = right_fvl[:,0] + twentyfeet_from_center
+    return left_fvl, right_fvl, left_rfw, right_rfw
+
+
