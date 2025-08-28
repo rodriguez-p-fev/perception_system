@@ -27,9 +27,10 @@ bboxes_inferences = BboxesInference.BboxesInference(config.keypoints_model_path,
 
 
 for img_idx in range(len(load_files.imgs_files)):
+    print("update")
 #for img_idx in range(75,90):
 #if(True):
-#    img_idx=408
+    #img_idx=5
     
     if(CUDA):
         # ******** ROS NODES ***********************************************************************************************
@@ -62,7 +63,7 @@ for img_idx in range(len(load_files.imgs_files)):
         #CREATE ACTIVE PATH, UNACTIVE PATH AND UNKNOWN SEGMENTS
         active_nodes =  segments_set.set_active_path(start_node)
         active_polygons =  segments_set.get_active_polygons(active_nodes)
-        active_polygons = np.array(active_polygons)
+        active_polygons = active_polygons
     else:
         active_polygons = []
     # OUTPUT
@@ -111,8 +112,13 @@ for img_idx in range(len(load_files.imgs_files)):
     #seg_img = draw.draw_foul_volume_lines(seg_img, [left_curve, right_curve], line_color="green")
     #seg_img = draw.draw_foul_volume_lines(seg_img, [left_fvl, right_fvl], line_color="red")
     #seg_img = draw.draw_foul_volume_lines(seg_img, [left_rfw, right_rfw], line_color="yellow")
+    #seg_img.save(output_file)
+    
+    seg_img = img_array
+    for p in active_polygons:
+        seg_img = draw.draw_polygon(seg_img, p, rnd_color)
+    seg_img = Image.fromarray(seg_img)
     seg_img.save(output_file)
-
 """
     import matplotlib.pyplot as plt
     points = np.array(calibration.normal["SOURCE"])

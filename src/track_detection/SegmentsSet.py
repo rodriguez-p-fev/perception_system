@@ -140,13 +140,13 @@ class SegmentsSet:
         self.active_polygons = []
         for node in active_nodes:
             if(self.segments[node].get_class() in [0,3]):
-                self.active_polygons.extend(self.segments[node].get_polygons()[0].get_polygon())
+                self.active_polygons.append(self.segments[node].get_polygons()[0].get_polygon())
             elif(self.segments[node].get_class() in [1,2]):
-                self.active_polygons.extend(self.segments[node].get_polygons()[0].get_polygon())
+                self.active_polygons.append(self.segments[node].get_polygons()[0].get_polygon())
                 if(self.get_segments()[node].get_direction() == -1):
-                    self.active_polygons.extend(self.segments[node].get_polygons()[1].get_polygon())
+                    self.active_polygons.append(self.segments[node].get_polygons()[1].get_polygon())
                 else:
-                    self.active_polygons.extend(self.segments[node].get_polygons()[2].get_polygon())
+                    self.active_polygons.append(self.segments[node].get_polygons()[2].get_polygon())
         return self.active_polygons
     def set_path(self, start, state):
         node = start
