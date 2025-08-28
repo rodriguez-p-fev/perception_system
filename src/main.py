@@ -27,10 +27,6 @@ bboxes_inferences = BboxesInference.BboxesInference(config.keypoints_model_path,
 
 
 for img_idx in range(len(load_files.imgs_files)):
-    print("update")
-#for img_idx in range(75,90):
-#if(True):
-    #img_idx=5
     
     if(CUDA):
         # ******** ROS NODES ***********************************************************************************************
