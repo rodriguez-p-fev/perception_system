@@ -163,7 +163,7 @@ class Segment:
     def get_center_point(self):
         return [self.cx,self.cy]
     def get_conection_points(self):
-        if(segment_classes[self.segment_class] in ['track','turnout']):
+        if(segment_classes[self.segment_class] not in ['fp_turnout','tp_turnout']):
             return [
                 self.polygons[0].get_weighted_bottom_center_point(),
                 self.polygons[0].get_weighted_top_center_point()

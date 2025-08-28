@@ -1,5 +1,4 @@
 import numpy as np
-from track_detection import Segment
 from side_lines import side_lines
 from calibration import PerspectiveTransformer
 
@@ -29,6 +28,32 @@ def filter_polygon_horizontal(selected_points: np.ndarray, error_margin = 0.8, G
     right = np.array(right)
     left_curve = side_lines.curve_fitting(left, n_points=500, grad=4)
     right_curve = side_lines.curve_fitting(right, n_points=500, grad=4)
+    return left_curve, right_curve
+def filter_polygon_vertical(selected_points: np.ndarray, error_margin = 0.6, GAUGE=1435):
+    selected_points = np.array(selected_points)
+    left = []
+    right = []
+    bottom = selected_points[:,1].min()
+    top = selected_points[:,1].max()
+    step = (top-bottom)/50
+    bottom = bottom - step/2
+    top = top + step/2
+
+    for i in range(int(bottom + step/2),int(top-step/2),int(step)):
+        filtered = np.where((selected_points[:,1]>i-step) & (selected_points[:,1]<i+step))[0]
+        if(len(filtered)>0):
+            l = selected_points[filtered][:,0].min()
+            r = selected_points[filtered][:,0].max()
+            diff = r-l
+            if(diff>GAUGE*(1-error_margin) and diff<GAUGE*(1+error_margin)):
+                l_idx = np.where(selected_points[filtered][:,0] == l)[0][0]
+                r_idx = np.where(selected_points[filtered][:,0] == r)[0][0]
+                left.append(selected_points[filtered][l_idx])
+                right.append(selected_points[filtered][r_idx])
+    left_curve = np.array(left)
+    right_curve = np.array(right)
+    #left_curve = side_lines.curve_fitting(left_curve, n_points=500, grad=4)
+    #right_curve = side_lines.curve_fitting(right_curve, n_points=500, grad=4)
     return left_curve, right_curve
 def get_fv_row_lines(left_curve, right_curve, GAUGE=1435):
     sixfeet = 1828

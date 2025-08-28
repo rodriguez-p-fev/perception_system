@@ -8,14 +8,14 @@ normal = {
     "SOURCE":np.array([
         [1125.0, 3040.0],
         [3025.0, 3040.0],
-        [2380.0, 1500.0],
-        [1820.0, 1500.0],
+        [2245.0, 1150.0],
+        [1985.0, 1150.0],
     ]),
     "DEST":np.array([
         [-GAUGE/2, 0],
         [GAUGE/2, 0],
-        [GAUGE/2, SELECTED_LONGITUD-1],
-        [-GAUGE/2, SELECTED_LONGITUD-1],
+        [GAUGE/2, SELECTED_LONGITUD],
+        [-GAUGE/2, SELECTED_LONGITUD],
     ])
 }
 SELECTED_LONGITUD = 150000 #mm

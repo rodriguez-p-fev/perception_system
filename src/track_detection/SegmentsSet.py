@@ -91,7 +91,7 @@ class SegmentsSet:
         self.start_node = self.get_closer_node(start_point, weight=2.6)
         for i in range(len(self.sorted_segments_idxs)-1):
             idx = self.sorted_segments_idxs[i]
-            if(Segment.segment_classes[self.segments[idx].get_class()] in ['track', 'turnout']):
+            if(Segment.segment_classes[self.segments[idx].get_class()] not in ['fp_turnout','tp_turnout']):
                 top_point = self.segments[idx].get_conection_points()[1]
                 selected_node = self.get_next_node(top_point, i + 1)
                 self.nodes_graph[idx].append(selected_node)
@@ -99,7 +99,7 @@ class SegmentsSet:
                 top_point = self.segments[idx].get_conection_points()[2]
                 selected_node = self.get_next_node(top_point, i + 1)
                 self.nodes_graph[idx].append(selected_node)
-            else:
+            elif(Segment.segment_classes[self.segments[idx].get_class()] == 'fp_turnout'):
                 top_point_1 = self.segments[idx].get_conection_points()[1]
                 top_point_2 = self.segments[idx].get_conection_points()[2]
                 selected_node = self.get_next_node(top_point_1, i + 1)
@@ -118,21 +118,36 @@ class SegmentsSet:
     def set_active_path(self, start):
         node = start
         self.active_nodes = []
+        self.active_polygons = []
         while node != -1 and self.get_segments()[node].get_state() != 2:
             if(len(self.nodes_graph[node]) == 2 and self.nodes_graph[node][0] != self.nodes_graph[node][1]):
                 self.get_segments()[node].set_activation(1)
+                self.active_polygons.extend(self.get_segments()[node].get_polygons()[0].get_polygon())
                 self.active_nodes.append(node)
                 if(self.get_segments()[node].get_direction() == -1):
+                    self.active_polygons.extend(self.get_segments()[node].get_polygons()[1].get_polygon())
                     node = self.nodes_graph[node][0]
                 else:
+                    self.active_polygons.extend(self.get_segments()[node].get_polygons()[2].get_polygon())
                     node = self.nodes_graph[node][1]
             else:
                 self.get_segments()[node].set_activation(1)
                 self.active_nodes.append(node)
+                self.active_polygons.extend(self.get_segments()[node].get_polygons()[0].get_polygon())
                 node = self.nodes_graph[node][0]
-        for node in self.unknown_nodes:
-            self.set_path(node, 2)
-        return None
+        return self.active_nodes
+    def get_active_polygons(self, active_nodes):
+        self.active_polygons = []
+        for node in active_nodes:
+            if(self.segments[node].get_class() in [0,3]):
+                self.active_polygons.extend(self.segments[node].get_polygons()[0].get_polygon())
+            elif(self.segments[node].get_class() in [1,2]):
+                self.active_polygons.extend(self.segments[node].get_polygons()[0].get_polygon())
+                if(self.get_segments()[node].get_direction() == -1):
+                    self.active_polygons.extend(self.segments[node].get_polygons()[1].get_polygon())
+                else:
+                    self.active_polygons.extend(self.segments[node].get_polygons()[2].get_polygon())
+        return self.active_polygons
     def set_path(self, start, state):
         node = start
         while node != -1:
@@ -174,7 +189,7 @@ class SegmentsSet:
                 return -1
         else:
             return -1
-    def get_closer_node(self, top_point, start_idx = 0, weight = 1):
+    def get_closer_node(self, top_point, start_idx = 0, weight = 1.8):
         distances = []
         for enum, comp_idx in enumerate(self.sorted_segments_idxs[start_idx:]):
             if(Segment.segment_classes[self.segments[comp_idx].get_class()] != 'tp_turnout'):

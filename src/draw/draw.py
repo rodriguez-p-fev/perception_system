@@ -43,7 +43,7 @@ def draw_bbox(img_array:np.ndarray, bbox, color, text_bbox=''):
 def draw_pointset(img, pointset, color=[255,0,0]):
     drw = ImageDraw.Draw(img, 'RGB') 
     for p in pointset:
-        drw.ellipse((p[0],p[1], p[0]+10, p[1]+10), fill = 'red', outline ='red')
+        drw.ellipse((p[0],p[1], p[0]+10, p[1]+10), fill = 'blue', outline ='blue')
     return img
 def draw_maks_from_polygons(img, shapes):
     blank = np.zeros(shape=(img.shape[0],img.shape[1]),dtype=np.float32)
