@@ -17,6 +17,7 @@ from track_detection import KeypointsBboxesSet
 from draw import draw
 from wayside import wayside_functions
 from side_lines import side_lines
+from cli import args
 
 CUDA =  torch.cuda.is_available()
 
