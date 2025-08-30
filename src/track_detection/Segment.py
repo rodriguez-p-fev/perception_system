@@ -57,6 +57,20 @@ class Segment:
         self.update_base_points()
         self.sort_polygons()
         return None
+    def get_active_bbox(self):
+        if(self.direction == -1):
+            active_bbox = [min(self.polygons[0].get_bbox()[0],self.polygons[1].get_bbox()[0]),
+                            min(self.polygons[0].get_bbox()[1],self.polygons[1].get_bbox()[1]),
+                            max(self.polygons[0].get_bbox()[2],self.polygons[1].get_bbox()[2]),
+                            max(self.polygons[0].get_bbox()[3],self.polygons[1].get_bbox()[3])]
+        elif(self.direction == 1):
+            active_bbox = [min(self.polygons[0].get_bbox()[0],self.polygons[2].get_bbox()[0]),
+                            min(self.polygons[0].get_bbox()[1],self.polygons[2].get_bbox()[1]),
+                            max(self.polygons[0].get_bbox()[2],self.polygons[2].get_bbox()[2]),
+                            max(self.polygons[0].get_bbox()[3],self.polygons[2].get_bbox()[3])]
+        else:
+            active_bbox = self.polygons[0].get_bbox()
+        return active_bbox
     def sort_polygons(self):
         common_idx = 0
         legs_idxs = []

@@ -3,33 +3,34 @@ from side_lines import side_lines
 from calibration import PerspectiveTransformer
 
 
-def filter_polygon_horizontal(selected_points: np.ndarray, error_margin = 0.8, GAUGE=1435):
+def filter_horizontal_polygon(selected_points: np.ndarray, error_margin = 0.8, GAUGE=1435):
     selected_points = np.array(selected_points)
-    left = []
-    right = []
-    bottom = selected_points[:,1].min()
-    top = selected_points[:,1].max()
-    step = (top-bottom)/1000
-    bottom = bottom - step/2
-    top = top + step/2
+    left_points = []
+    right_points = []
+    left = selected_points[:,0].min()
+    right = selected_points[:,0].max()
+    step = (right-left)/1000
+    left = left - step/2
+    right = right + step/2
 
-    for i in range(int(bottom + step),int(top-step),int(step)):
-        filtered = np.where((selected_points[:,1]>i-step) & (selected_points[:,1]<i+step))[0]
+    for i in range(int(left + step),int(right-step),int(step)):
+        filtered = np.where((selected_points[:,0]>i-step) & (selected_points[:,0]<i+step))[0]
         if(len(filtered)>0):
-            l = selected_points[filtered][:,0].min()
-            r = selected_points[filtered][:,0].max()
+            l = selected_points[filtered][:,1].min()
+            r = selected_points[filtered][:,1].max()
             diff = r-l
             if(diff>GAUGE*(1-error_margin) and diff<GAUGE*(1+error_margin)):
                 l_idx = np.where(selected_points[filtered][:,0] == l)[0][0]
                 r_idx = np.where(selected_points[filtered][:,0] == r)[0][0]
-                left.append(selected_points[filtered][l_idx])
-                right.append(selected_points[filtered][r_idx])
-    left = np.array(left)
-    right = np.array(right)
-    left_curve = side_lines.curve_fitting(left, n_points=500, grad=4)
-    right_curve = side_lines.curve_fitting(right, n_points=500, grad=4)
+                left_points.append(selected_points[filtered][l_idx])
+                right_points.append(selected_points[filtered][r_idx])
+    left_points = np.array(left_points)
+    right_points = np.array(right_points)
+    left_curve = side_lines.curve_fitting(left_points, n_points=500, grad=4)
+    right_curve = side_lines.curve_fitting(right_points, n_points=500, grad=4)
     return left_curve, right_curve
-def filter_polygon_vertical(selected_points: np.ndarray, error_margin = 0.6, GAUGE=1435):
+def filter_vertical_polygon(selected_points: np.ndarray, error_margin = 1.5, GAUGE=1435):
+    print("margin")
     selected_points = np.array(selected_points)
     left = []
     right = []
@@ -76,7 +77,7 @@ def get_fv_row_wayside_lines(shape: np.ndarray,
                              perspective_transformer: PerspectiveTransformer, 
                              img_shape:np.ndarray):
     selected_track_perspective = perspective_transformer.transform(shape)
-    left_curve_perspective, right_curve_perspective = filter_polygon_horizontal(selected_track_perspective)
+    left_curve_perspective, right_curve_perspective = filter_horizontal_polygon(selected_track_perspective)
 
     left_fvl_perspective, right_fvl_perspective, left_rfw_perspective, right_rfw_perspective = get_fv_row_lines(left_curve_perspective, right_curve_perspective)
     

@@ -18,7 +18,7 @@ normal = {
         [-GAUGE/2, SELECTED_LONGITUD],
     ])
 }
-SELECTED_LONGITUD = 150000 #mm
+SELECTED_LONGITUD = 250000 #mm
 wayside = {
     "SOURCE":np.array([
         [0.0, 585.0],

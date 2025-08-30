@@ -39,7 +39,6 @@ class SegmentsSet:
         legs = self.polygons[self.leg_idxs]
         for common in commons:
             new_segment = self.select_legs(common, legs)
-            #new_segment = Segment.Segment(common)
             new_segment.update_bbox()
             new_segment.update_keypoints(keypointsbboxes_list)
             self.segments.append(new_segment)
@@ -87,8 +86,8 @@ class SegmentsSet:
         return new_segment
     
     #Join keypoints model output
-    def set_nodes_graph(self, start_point: np.ndarray):
-        self.start_node = self.get_closer_node(start_point, weight=2.6)
+    def set_nodes_graph(self, start_node: int):
+        self.start_node = start_node
         for i in range(len(self.sorted_segments_idxs)-1):
             idx = self.sorted_segments_idxs[i]
             if(Segment.segment_classes[self.segments[idx].get_class()] not in ['fp_turnout','tp_turnout']):
@@ -206,14 +205,23 @@ class SegmentsSet:
         selected_idx = np.where(np.array(distances)==d_min)[0][0] + start_idx
         selected_node = self.sorted_segments_idxs[selected_idx]
         return selected_node
+    def get_start_node(self, start_bbox):
+        iou = []
+        for enum, comp_idx in enumerate(self.sorted_segments_idxs):
+            d = utils.bboxes_IoU(start_bbox, self.segments[comp_idx].get_bbox())
+            iou.append(d)
+        d_max = max(iou)
+        selected_idx = np.where(np.array(iou)==d_max)[0][0]
+        selected_node = self.sorted_segments_idxs[selected_idx]
+        return selected_node
     
     #Getters
     def get_segments(self):
         return self.segments
     def get_segments_classes(self):
         return self.segments_classes
-    def get_start_node(self):
-        return self.start_node
+    #def get_start_node(self):
+    #    return self.start_node
     def get_active_nodes(self):
         return self.active_nodes
     def get_start_segment(self):
