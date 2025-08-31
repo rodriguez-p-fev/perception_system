@@ -8,7 +8,7 @@ import config
 from inference_files import load_files
 from inference_files import SegmentationInference
 from inference_files import BboxesInference
-from inference import inferences
+
 from calibration import PerspectiveTransformer
 from calibration import calibration
 from track_detection import Segment
@@ -32,10 +32,12 @@ prev_bbox = [4096/4,3040-900,3*4096/4,3040]
 for img_idx in range(len(load_files.imgs_files)):
     if(CUDA):
         print("CUDA")
+        from inference import inferences
         # ******** ROS NODES ***********************************************************************************************
         img_array = load_files.get_image(img_idx)
         segmentation_dict = inferences.segmentation_model.inference(img_array)
         keypointsbboxes_dict = inferences.keypoints_model.inference(img_array)
+        output_file = os.path.join(config.output_path, inferences.imgs_files[img_idx])
     else:
         print("CPU")
         # ******** LOCAL CODE ***********************************************************************************************
@@ -80,4 +82,4 @@ for img_idx in range(len(load_files.imgs_files)):
         seg_img = draw.draw_polygon(seg_img, p, rnd_color)
     seg_img = Image.fromarray(seg_img)
     seg_img.save(output_file)
-    seg_img.save("img.jpg")
+    #seg_img.save("img.jpg")
